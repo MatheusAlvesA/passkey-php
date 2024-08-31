@@ -1,0 +1,33 @@
+{% extends "main.html.twig" %}
+
+{% block content %}
+	<div class="container mt-5">
+		{% if user is empty %}
+			<div class="alert alert-danger" role="alert">Acesso negado</div>
+		{% else %}
+			<div class="card" style="width: 18rem;">
+				<div class="card-body">
+					<h5 class="card-title">Bem vindo(a)</h5>
+					<h6 class="card-subtitle mb-2 text-muted">{{ user.username|escape }}</h6>
+				</div>
+			</div>
+
+			<div class="card w-100 mt-3" style="width: 18rem;">
+				<div class="card-body">
+					<h5 class="card-title">Sua cor:</h5>
+					<div style="padding: 20px; border-radius: 12px; background-color: {{ user.color }};"></div>
+				</div>
+			</div>
+
+			<form class="row g-3 mt-5" method="POST" action="/update-color">
+				<div class="col-auto">
+					<label for="colorInput" class="form-label">Nova cor</label>
+					<input type="color" class="form-control form-control-color" id="colorInput" value="{{ user.color }}" title="Cor" name="color">
+				</div>
+				<div class="col-auto">
+					<button type="submit" class="btn btn-primary mb-3">Atualizar</button>
+				</div>
+			</form>
+		{% endif %}
+	</div>
+{% endblock %}

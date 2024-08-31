@@ -3,6 +3,7 @@
 use Doctrine\DBAL\Connection;
 use Dotenv\Dotenv;
 use Matheus\PasskeyPhp\Controller\MainAppController;
+use Matheus\PasskeyPhp\Repository\UserRepository;
 use Matheus\PasskeyPhp\Service\AuthService;
 use Slim\App;
 use Slim\Views\Twig;
@@ -18,14 +19,18 @@ function setupApp(App $app): void
     setupView($app);
 
     $app->get('/', [MainAppController::class, 'login']);
+    $app->post('/', [MainAppController::class, 'login']);
     $app->get('/singup', [MainAppController::class, 'singup']);
+    $app->post('/singup', [MainAppController::class, 'singup']);
     $app->get('/home', [MainAppController::class, 'home']);
+    $app->get('/logout', [MainAppController::class, 'logout']);
+    $app->post('/update-color', [MainAppController::class, 'updateColor']);
 }
 
 function setupServices(App $app)
 {
-    $app->getContainer()->set(AuthService::class, function () {
-        return new AuthService();
+    $app->getContainer()->set(AuthService::class, function ($c) {
+        return new AuthService($c->get(UserRepository::class));
     });
 }
 
