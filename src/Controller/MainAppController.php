@@ -2,6 +2,7 @@
 
 namespace Matheus\PasskeyPhp\Controller;
 
+use Matheus\PasskeyPhp\Repository\UserRepository;
 use Matheus\PasskeyPhp\Service\AuthService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -23,8 +24,11 @@ class MainAppController
 
     public function home(Request $request, Response $response)
     {
+        $repo = $this->app->getContainer()->get(UserRepository::class);
+        $user = $repo->getById(1);
         if(!$this->authService->login('a', 'b')) {
             $response->getBody()->write("Acesso negado");
+            $response->getBody()->write(print_r($user, true));
             return $response;
         }
         $response->getBody()->write("Home secret");

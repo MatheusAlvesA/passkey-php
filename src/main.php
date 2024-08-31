@@ -1,23 +1,24 @@
 <?php
 
+use Doctrine\DBAL\Connection;
+use Dotenv\Dotenv;
 use Matheus\PasskeyPhp\Controller\MainAppController;
 use Matheus\PasskeyPhp\Service\AuthService;
 use Slim\App;
-use Psr\Http\Message\ResponseInterface as Response;
-use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 use Slim\Views\TwigMiddleware;
+use Doctrine\DBAL\DriverManager;
 
 function setupApp(App $app): void
 {
+    Dotenv::createImmutable(__DIR__ . '/../')->load();
+
+    setupDatabase($app);
     setupServices($app);
     setupView($app);
 
-    $controller = $app->getContainer()->get(MainAppController::class);
     $app->get('/', [MainAppController::class, 'login']);
-
     $app->get('/singup', [MainAppController::class, 'singup']);
-
     $app->get('/home', [MainAppController::class, 'home']);
 }
 
@@ -43,4 +44,18 @@ function setupView(App $app)
     // Add other middleware
     $app->addRoutingMiddleware();
     $app->addErrorMiddleware(true, true, true);
+}
+
+function setupDatabase(App $app)
+{
+    $app->getContainer()->set(Connection::class, function () {
+        $connectionParams = [
+            'dbname' => $_ENV['db_name'],
+            'user' => $_ENV['db_user'],
+            'password' => $_ENV['db_pass'],
+            'host' => $_ENV['db_host'],
+            'driver' => 'pdo_mysql',
+        ];
+        return DriverManager::getConnection($connectionParams);
+    });
 }
