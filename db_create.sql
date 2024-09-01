@@ -1,6 +1,6 @@
 CREATE TABLE users (
 	id int NOT NULL AUTO_INCREMENT,
-	username VARCHAR(255) UNIQUE NOT NULL,
+	username VARCHAR(255) NOT NULL,
     password TEXT NOT NULL,
     color VARCHAR(30) NOT NULL,
     
