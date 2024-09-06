@@ -20,6 +20,10 @@ host('104.248.230.198')
     ->set('remote_user', 'root')
     ->set('deploy_path', '/var/www/deploys');
 
+host('192.168.1.2')
+    ->set('remote_user', 'ubuntu')
+    ->set('deploy_path', '/var/www/deploys');
+
 // Tasks
 
 task('build', function () {
