@@ -54,7 +54,6 @@ class UserRepository
         try {
             $n = $this->conn->insert('users', [
                 'username' => $user->username,
-                'password' => $user->password,
                 'color' => $user->color
             ]);
         } catch(UniqueConstraintViolationException $ex) {
@@ -78,7 +77,6 @@ class UserRepository
         try {
             $n = $this->conn->update('users', [
                 'username' => $user->username,
-                'password' => $user->password,
                 'color' => $user->color
             ], [
                 'id' => $user->id

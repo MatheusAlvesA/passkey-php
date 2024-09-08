@@ -3,6 +3,7 @@
 namespace Matheus\PasskeyPhp\Service;
 
 use Matheus\PasskeyPhp\Model\User;
+use Matheus\PasskeyPhp\Repository\PublicKeyCredentialSourceRepository;
 use Matheus\PasskeyPhp\Repository\UserRepository;
 use Symfony\Component\Serializer\Encoder\JsonEncode;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
@@ -23,7 +24,7 @@ class AuthService
     protected $attestStmSM;
     protected $serializer;
     protected $csmFactory;
-    public function __construct(protected UserRepository $repo)
+    public function __construct(protected UserRepository $repo, protected PublicKeyCredentialSourceRepository $credRepo)
     {
         $this->attestStmSM = AttestationStatementSupportManager::create();
         $this->attestStmSM->add(NoneAttestationStatementSupport::create());
@@ -31,13 +32,10 @@ class AuthService
         $this->csmFactory = new CeremonyStepManagerFactory();
     }
 
-    public function login(string $user, string $pass): ?User
+    public function login(string $user): ?User
     {
         $user = $this->repo->getByUsername($user);
         if(empty($user)) {
-            return null;
-        }
-        if($user->password != $pass) {
             return null;
         }
 
@@ -92,7 +90,7 @@ class AuthService
         return $json;
     }
 
-    public function validateRegistrationChallenge(string $res): ?PublicKeyCredentialSource
+    public function validateAndSaveRegistrationChallenge(string $res): ?PublicKeyCredentialSource
     {
         $publicKeyCredential = $this->serializer->deserialize(
             $res,
@@ -121,6 +119,13 @@ class AuthService
             $publicKeyCredentialCreationOptions,
             'passkey.matheusalves.com.br'
         );
+
+        if(!$this->credRepo->save(
+            $publicKeyCredentialSource,
+            (int) $publicKeyCredentialCreationOptions->user->getId()
+        )) {
+            return null;
+        }
 
         return $publicKeyCredentialSource;
     }

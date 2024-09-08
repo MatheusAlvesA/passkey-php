@@ -32,7 +32,7 @@ class MainAppController
             ]);
         }
 
-        $user = $this->authService->login($data['user'], $data['pass']);
+        $user = $this->authService->login($data['user']);
         if(empty($user)) {
             return $view->render($response, 'login.html.twig', [
                 'error' => 'Usuário ou senha incorretos'
@@ -40,6 +40,19 @@ class MainAppController
         }
 
         return $response->withStatus(302)->withAddedHeader('Location', '/home');
+    }
+
+    public function generateRegistrationChallenge(Request $request, Response $response)
+    {
+        $user = $this->authService->getAuthUser();
+        if(empty($user)) {
+            return $response->withStatus(302)->withAddedHeader('Location', '/');
+        }
+
+        $challenge = $this->authService->generateRegistrationChallenge($user);
+        $response->withStatus(200);
+        $response->getBody()->write($challenge);
+        return $response;
     }
 
     public function updateColor(Request $request, Response $response, UserRepository $repo)
@@ -78,36 +91,67 @@ class MainAppController
         Request $request,
         Response $response,
         Twig $view,
+    ) {
+        return $view->render($response, 'singup.html.twig', []);
+    }
+
+    public function singupSubmit(
+        Request $request,
+        Response $response,
+        Twig $view,
         UserRepository $repo
     ) {
-        if($request->getMethod() == 'GET') {
-            return $view->render($response, 'singup.html.twig', []);
-        }
-
-        $data = $request->getParsedBody();
-        if(empty($data['user']) || empty($data['pass'])) {
-            return $view->render($response, 'singup.html.twig', [
-                'error' => 'Usuário e senha são obrigatórios'
-            ]);
+        $data = $request->getBody()->getContents();
+        $data = json_decode($data, true);
+        if(empty($data['user'])) {
+            $response->withStatus(400);
+            $response->withAddedHeader('Content-Type', 'application/json');
+            $response->getBody()->write(json_encode([
+                'error' => 'Usuário é obrigatório',
+                'success' => false
+            ]));
+            return $response;
         }
         $newUser = new User();
         $newUser->username = $data['user'];
-        $newUser->password = $data['pass'];
         $newUser->color = '#FF0000';
         try {
-            $repo->save($newUser);
+            $r = $repo->save($newUser);
         } catch(UserActionException $ex) {
-            return $view->render($response, 'singup.html.twig', [
-                'error' => $ex->getMessage()
-            ]);
+            $response->withStatus(400);
+            $response->withAddedHeader('Content-Type', 'application/json');
+            $response->getBody()->write(json_encode([
+                'error' => $ex->getMessage(),
+                'success' => false
+            ]));
+            return $response;
         } catch(UserActionException $ex) {
-            return $view->render($response, 'singup.html.twig', [
-                'error' => 'Erro desconhecido ao salvar'
-            ]);
+            $response->withStatus(500);
+            $response->withAddedHeader('Content-Type', 'application/json');
+            $response->getBody()->write(json_encode([
+                'error' => $ex->getMessage(),
+                'success' => false
+            ]));
+            return $response;
         }
 
-        $this->authService->login($newUser->username, $newUser->password);
+        if(!$r) {
+            $response->withStatus(400);
+            $response->withAddedHeader('Content-Type', 'application/json');
+            $response->getBody()->write(json_encode([
+                'error' => 'Erro ao salvar usuário',
+                'success' => false
+            ]));
+            return $response;
+        }
 
-        return $response->withStatus(302)->withAddedHeader('Location', '/home');
+        $this->authService->login($newUser->username);
+
+        $response->withStatus(201);
+        $response->withAddedHeader('Content-Type', 'application/json');
+        $response->getBody()->write(json_encode([
+            'success' => true,
+        ]));
+        return $response;
     }
 }
