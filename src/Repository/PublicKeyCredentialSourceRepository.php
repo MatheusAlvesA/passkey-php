@@ -75,7 +75,7 @@ class PublicKeyCredentialSourceRepository
             );
             $n = $this->conn->insert('credentials', [
                 'user_id' => $userId,
-                'credential_id' => $data->publicKeyCredentialId,
+                'credential_id' => $data->aaguid->__tostring(),
                 'credential_data' => $json
             ]);
         } catch(UniqueConstraintViolationException $ex) {
