@@ -35,4 +35,4 @@ task('reload_php_fpm_lb', function () {
 
 after('deploy:failed', 'deploy:unlock');
 after('deploy:update_code', 'build');
-after('success', 'reload_php_fpm_lb');
+after('deploy:update_code', 'reload_php_fpm_lb');
