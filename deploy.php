@@ -27,7 +27,12 @@ task('build', function () {
     run('composer install');
 });
 
+task('reload_php_fpm_lb', function () {
+    run('sudo systemctl reload php8.1-fpm');
+});
+
 // Hooks
 
 after('deploy:failed', 'deploy:unlock');
 after('deploy:update_code', 'build');
+after('success', 'reload_php_fpm_lb');
