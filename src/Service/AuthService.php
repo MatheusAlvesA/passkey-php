@@ -102,16 +102,13 @@ class AuthService
 
     public function validateAndSaveRegistrationChallenge(string $res, int $userId): ?PublicKeyCredentialSource
     {
-        file_put_contents('debug0.txt', $res);
         $publicKeyCredential = $this->serializer->deserialize(
             $res,
             PublicKeyCredential::class,
             'json'
         );
-        file_put_contents('debug0.json', (string) $publicKeyCredential);
 
         if (!($publicKeyCredential->response instanceof AuthenticatorAttestationResponse)) {
-            file_put_contents('debug.json', (string) $publicKeyCredential);
             return null;
         }
 
@@ -128,13 +125,12 @@ class AuthService
         );
 
         $publicKeyCredentialSource = $authenticatorAttestationResponseValidator->check(
-            $publicKeyCredential,
+            $publicKeyCredential->response,
             $publicKeyCredentialCreationOptions,
             'passkey.matheusalves.com.br'
         );
 
         if(!$this->credRepo->save($publicKeyCredentialSource, $userId)) {
-            file_put_contents('debug.json', 'nao salvou');
             return null;
         }
 
