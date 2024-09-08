@@ -10,22 +10,25 @@
 			</div>
 		</div>
 		<div class="w-100 text-center">
-			<button class="btn btn-primary">Cadastrar</button>
+			<button class="btn btn-primary" id="submitBtn">Cadastrar</button>
 		</div>
 	</form>
 </div>
 
 <script>
 	async function singup(e) {
+		const btn = document.getElementById('submitBtn');
 		e.preventDefault();
 		const user = document.getElementById('inputUser').value;
 		if (!user || user.length <= 4) {
 			alert('Preencha o campo usuário!');
 			return false;
 		}
+		btn.disabled = true
 		const res = await axios.post('/singup', { user });
 		if (!res.data.success) {
 			alert(res.data.error);
+			btn.disabled = false;
 			return false;
 		}
 		const resp = await axios.get('/generate-registration-challenge');
@@ -35,16 +38,17 @@
 		} catch (error) {
 			console.error(error);
 			alert('Error: ' + error.message);
+			btn.disabled = false;
 			return false;
 		}
 
 		const respv = await axios.post('/validate-registration-challenge', attResp);
 		if (!respv.data.success) {
 			alert(respv.data.error);
+			btn.disabled = false;
 			return false;
 		}
 
-		alert('Usuário cadastrado com sucesso!');
 		window.location.href = '/home';
 		return false;
 	}
