@@ -2,6 +2,7 @@
 
 namespace Matheus\PasskeyPhp\Service;
 
+use Cose\Algorithms;
 use Matheus\PasskeyPhp\Model\User;
 use Matheus\PasskeyPhp\Repository\PublicKeyCredentialSourceRepository;
 use Matheus\PasskeyPhp\Repository\UserRepository;
@@ -14,6 +15,7 @@ use Webauthn\Denormalizer\WebauthnSerializerFactory;
 use Webauthn\PublicKeyCredential;
 use Webauthn\CeremonyStep\CeremonyStepManagerFactory;
 use Webauthn\PublicKeyCredentialCreationOptions;
+use Webauthn\PublicKeyCredentialParameters;
 use Webauthn\PublicKeyCredentialRpEntity;
 use Webauthn\PublicKeyCredentialSource;
 use Webauthn\PublicKeyCredentialUserEntity;
@@ -72,7 +74,14 @@ class AuthService
         $publicKeyCredentialCreationOptions = PublicKeyCredentialCreationOptions::create(
             $rpEntity,
             $userEntity,
-            random_bytes(16)
+            random_bytes(16),
+            [
+                PublicKeyCredentialParameters::create('public-key', Algorithms::COSE_ALGORITHM_ES256K), // More interesting algorithm
+                PublicKeyCredentialParameters::create('public-key', Algorithms::COSE_ALGORITHM_ES256),  //      ||
+                PublicKeyCredentialParameters::create('public-key', Algorithms::COSE_ALGORITHM_RS256),  //      ||
+                PublicKeyCredentialParameters::create('public-key', Algorithms::COSE_ALGORITHM_PS256),  //      \/
+                PublicKeyCredentialParameters::create('public-key', Algorithms::COSE_ALGORITHM_ED256),  // Less interesting algorithm
+            ]
         );
 
         $json = $this->serializer->serialize(
