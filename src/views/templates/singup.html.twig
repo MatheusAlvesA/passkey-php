@@ -24,24 +24,28 @@
 			return false;
 		}
 		const res = await axios.post('/singup', { user });
-		if (res.data.success) {
-			const resp = await axios.get('/generate-registration-challenge');
-			let attResp;
-			try { // Pass the options to the authenticator and wait for a response
-				attResp = await SimpleWebAuthnBrowser.startRegistration(resp.data);
-			} catch (error) {
-				console.error(error);
-				alert('Error: ' + error.message);
-				return false;
-			}
-
-			console.log(attResp);
-			alert('Usuário cadastrado com sucesso!');
-		} else
+		if (!res.data.success) {
 			alert(res.data.error);
+			return false;
+		}
+		const resp = await axios.get('/generate-registration-challenge');
+		let attResp;
+		try { // Pass the options to the authenticator and wait for a response
+			attResp = await SimpleWebAuthnBrowser.startRegistration(resp.data);
+		} catch (error) {
+			console.error(error);
+			alert('Error: ' + error.message);
+			return false;
+		}
 
+		const respv = await axios.post('/validate-registration-challenge', attResp);
+		if (!respv.data.success) {
+			alert(respv.data.error);
+			return false;
+		}
 
-
+		alert('Usuário cadastrado com sucesso!');
+		window.location.href = '/home';
 		return false;
 	}
 </script>

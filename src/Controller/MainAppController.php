@@ -55,6 +55,42 @@ class MainAppController
         return $response;
     }
 
+    public function validateRegistrationChallenge(Request $request, Response $response)
+    {
+        $user = $this->authService->getAuthUser();
+        if(empty($user)) {
+            $response->withStatus(400);
+            $response->withAddedHeader('Content-Type', 'application/json');
+            $response->getBody()->write(json_encode([
+                'error' => 'Usuário não autenticado',
+                'success' => false
+            ]));
+            return $response;
+        }
+
+        $res = $this->authService->validateAndSaveRegistrationChallenge(
+            $request->getBody()->getContents(),
+            $user->id
+        );
+
+        if(empty($res)) {
+            $response->withStatus(400);
+            $response->withAddedHeader('Content-Type', 'application/json');
+            $response->getBody()->write(json_encode([
+                'error' => 'Falha na validação',
+                'success' => false
+            ]));
+            return $response;
+        }
+
+        $response->withStatus(200);
+        $response->withAddedHeader('Content-Type', 'application/json');
+        $response->getBody()->write(json_encode([
+            'success' => true
+        ]));
+        return $response;
+    }
+
     public function updateColor(Request $request, Response $response, UserRepository $repo)
     {
         $user = $this->authService->getAuthUser();

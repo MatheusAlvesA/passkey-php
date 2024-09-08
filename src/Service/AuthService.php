@@ -99,7 +99,7 @@ class AuthService
         return $json;
     }
 
-    public function validateAndSaveRegistrationChallenge(string $res): ?PublicKeyCredentialSource
+    public function validateAndSaveRegistrationChallenge(string $res, int $userId): ?PublicKeyCredentialSource
     {
         $publicKeyCredential = $this->serializer->deserialize(
             $res,
@@ -129,10 +129,7 @@ class AuthService
             'passkey.matheusalves.com.br'
         );
 
-        if(!$this->credRepo->save(
-            $publicKeyCredentialSource,
-            (int) $publicKeyCredentialCreationOptions->user->getId()
-        )) {
+        if(!$this->credRepo->save($publicKeyCredentialSource, $userId)) {
             return null;
         }
 

@@ -27,6 +27,7 @@ function setupApp(App $app): void
     $app->get('/logout', [MainAppController::class, 'logout']);
     $app->post('/update-color', [MainAppController::class, 'updateColor']);
     $app->get('/generate-registration-challenge', [MainAppController::class, 'generateRegistrationChallenge']);
+    $app->post('/validate-registration-challenge', [MainAppController::class, 'validateRegistrationChallenge']);
 }
 
 function setupServices(App $app)
