@@ -80,8 +80,6 @@ class PublicKeyCredentialSourceRepository
             ]);
         } catch(UniqueConstraintViolationException $ex) {
             throw new UserActionException('A chave já está cadastrada.');
-        } catch(\Exception $ex) {
-            return false;
         }
 
         return $n > 0;
