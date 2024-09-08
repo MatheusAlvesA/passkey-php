@@ -10,6 +10,7 @@ use Symfony\Component\Serializer\Encoder\JsonEncode;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 use Webauthn\AttestationStatement\AttestationStatementSupportManager;
 use Webauthn\AttestationStatement\NoneAttestationStatementSupport;
+use Webauthn\AuthenticatorAttestationResponse;
 use Webauthn\AuthenticatorAttestationResponseValidator;
 use Webauthn\Denormalizer\WebauthnSerializerFactory;
 use Webauthn\PublicKeyCredential;
@@ -101,13 +102,16 @@ class AuthService
 
     public function validateAndSaveRegistrationChallenge(string $res, int $userId): ?PublicKeyCredentialSource
     {
+        file_put_contents('debug0.txt', $res);
         $publicKeyCredential = $this->serializer->deserialize(
             $res,
             PublicKeyCredential::class,
             'json'
         );
+        file_put_contents('debug0.json', (string) $publicKeyCredential);
 
         if (!($publicKeyCredential->response instanceof AuthenticatorAttestationResponse)) {
+            file_put_contents('debug.json', (string) $publicKeyCredential);
             return null;
         }
 
@@ -130,6 +134,7 @@ class AuthService
         );
 
         if(!$this->credRepo->save($publicKeyCredentialSource, $userId)) {
+            file_put_contents('debug.json', 'nao salvou');
             return null;
         }
 
