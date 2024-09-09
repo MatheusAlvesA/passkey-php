@@ -31,7 +31,7 @@
 			attResp = await SimpleWebAuthnBrowser.startAuthentication(resp.data);
 		} catch (error) {
 			console.error(error);
-			alert('Error: ' + error.message);
+			alert('Falha ao autenticar.');
 			btn.disabled = false;
 			return false;
 		}
