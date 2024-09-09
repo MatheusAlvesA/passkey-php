@@ -179,9 +179,7 @@ class MainAppController
         }
         $response->withStatus($statusCode);
         $response->withAddedHeader('Content-Type', 'application/json');
-        if(!empty($errorMessage)) {
-            $response->getBody()->write(json_encode($dataRes));
-        }
+        $response->getBody()->write(json_encode($dataRes));
         return $response;
     }
 }
