@@ -21,25 +21,7 @@ class MainAppController
 
     public function login(Request $request, Response $response, Twig $view)
     {
-        if($request->getMethod() == 'GET') {
-            return $view->render($response, 'login.html.twig', []);
-        }
-
-        $data = $request->getParsedBody();
-        if(empty($data['user']) || empty($data['pass'])) {
-            return $view->render($response, 'login.html.twig', [
-                'error' => 'Usuário e senha são obrigatórios'
-            ]);
-        }
-
-        $user = $this->authService->login($data['user']);
-        if(empty($user)) {
-            return $view->render($response, 'login.html.twig', [
-                'error' => 'Usuário ou senha incorretos'
-            ]);
-        }
-
-        return $response->withStatus(302)->withAddedHeader('Location', '/home');
+        return $view->render($response, 'login.html.twig', []);
     }
 
     public function generateRegistrationChallenge(Request $request, Response $response)
@@ -59,12 +41,7 @@ class MainAppController
     {
         $user = $this->authService->getAuthUser();
         if(empty($user)) {
-            $response->withStatus(400);
-            $response->withAddedHeader('Content-Type', 'application/json');
-            $response->getBody()->write(json_encode([
-                'error' => 'Usuário não autenticado',
-                'success' => false
-            ]));
+            $this->configJsonResponse($response, 'Usuário não autenticado', 400);
             return $response;
         }
 
@@ -74,20 +51,41 @@ class MainAppController
         );
 
         if(empty($res)) {
-            $response->withStatus(400);
-            $response->withAddedHeader('Content-Type', 'application/json');
-            $response->getBody()->write(json_encode([
-                'error' => 'Falha na validação',
-                'success' => false
-            ]));
+            $this->configJsonResponse($response, 'Falha na validação', 400);
             return $response;
         }
 
+        $this->configJsonResponse($response);
+        return $response;
+    }
+
+    public function generateAuthenticationChallenge(
+        Request $request,
+        Response $response,
+        UserRepository $repo
+    ) {
+        $user = $repo->getByUsername($request->getQueryParams()['user'] ?? '');
+        if(empty($user)) {
+            $this->configJsonResponse($response, 'Falha ao autenticar', 400);
+            return $response;
+        }
+
+        $challenge = $this->authService->generateAuthenticationChallenge($user);
         $response->withStatus(200);
-        $response->withAddedHeader('Content-Type', 'application/json');
-        $response->getBody()->write(json_encode([
-            'success' => true
-        ]));
+        $response->getBody()->write($challenge);
+        return $response;
+    }
+
+    public function validateAuthenticationChallenge(Request $request, Response $response)
+    {
+        $res = $this->authService->validateAuthenticationChallenge($request->getBody()->getContents());
+
+        if(!$res) {
+            $this->configJsonResponse($response, 'Falha na autenticação', 401);
+            return $response;
+        }
+
+        $this->configJsonResponse($response);
         return $response;
     }
 
@@ -140,12 +138,7 @@ class MainAppController
         $data = $request->getBody()->getContents();
         $data = json_decode($data, true);
         if(empty($data['user'])) {
-            $response->withStatus(400);
-            $response->withAddedHeader('Content-Type', 'application/json');
-            $response->getBody()->write(json_encode([
-                'error' => 'Usuário é obrigatório',
-                'success' => false
-            ]));
+            $this->configJsonResponse($response, 'Usuário é obrigatório', 400);
             return $response;
         }
         $newUser = new User();
@@ -154,40 +147,41 @@ class MainAppController
         try {
             $r = $repo->save($newUser);
         } catch(UserActionException $ex) {
-            $response->withStatus(400);
-            $response->withAddedHeader('Content-Type', 'application/json');
-            $response->getBody()->write(json_encode([
-                'error' => $ex->getMessage(),
-                'success' => false
-            ]));
+            $this->configJsonResponse($response, $ex->getMessage(), 400);
             return $response;
         } catch(UserActionException $ex) {
-            $response->withStatus(500);
-            $response->withAddedHeader('Content-Type', 'application/json');
-            $response->getBody()->write(json_encode([
-                'error' => $ex->getMessage(),
-                'success' => false
-            ]));
+            $this->configJsonResponse($response, $ex->getMessage(), 500);
             return $response;
         }
 
         if(!$r) {
-            $response->withStatus(400);
-            $response->withAddedHeader('Content-Type', 'application/json');
-            $response->getBody()->write(json_encode([
-                'error' => 'Erro ao salvar usuário',
-                'success' => false
-            ]));
+            $this->configJsonResponse($response, 'Erro ao salvar usuário', 400);
             return $response;
         }
 
-        $this->authService->login($newUser->username);
+        session_start();
+        $_SESSION['user_id'] = $newUser->id;
 
-        $response->withStatus(201);
+        $this->configJsonResponse($response, null, 201);
+        return $response;
+    }
+
+    private function configJsonResponse(
+        Response $response,
+        ?string $errorMessage = null,
+        int $statusCode = 200
+    ): Response {
+        $dataRes = [
+            'success' => empty($errorMessage),
+        ];
+        if(!empty($errorMessage)) {
+            $dataRes['error'] = $errorMessage;
+        }
+        $response->withStatus($statusCode);
         $response->withAddedHeader('Content-Type', 'application/json');
-        $response->getBody()->write(json_encode([
-            'success' => true,
-        ]));
+        if(!empty($errorMessage)) {
+            $response->getBody()->write(json_encode($dataRes));
+        }
         return $response;
     }
 }

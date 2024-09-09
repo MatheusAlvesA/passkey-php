@@ -1,23 +1,50 @@
 {% extends "main.html.twig" %}
 
 {% block content %}
-	<div class="container mt-5">
-		<form method="POST">
-			<div class="row mb-3">
-				<label for="inputUser" class="col-sm-2 col-form-label">Usuário</label>
-				<div class="col-sm-10">
-					<input type="text" class="form-control" id="inputUser" name="user">
-				</div>
+<div class="container mt-5">
+	<form method="POST" onsubmit="return singup(event)">
+		<div class="row mb-3">
+			<label for="inputUser" class="col-sm-2 col-form-label">Usuário</label>
+			<div class="col-sm-10">
+				<input type="text" class="form-control" id="inputUser" name="user">
 			</div>
-			<div class="row mb-3">
-				<label for="inputPassword" class="col-sm-2 col-form-label">Senha</label>
-				<div class="col-sm-10">
-					<input type="password" class="form-control" id="inputPassword" name="pass">
-				</div>
-			</div>
-			<div class="w-100 text-center">
-				<button type="submit" class="btn btn-primary">Login</button>
-			</div>
-		</form>
-	</div>
+		</div>
+		<div class="w-100 text-center">
+			<button type="submit" class="btn btn-primary" id="submitBtn">Login</button>
+		</div>
+	</form>
+</div>
+
+<script>
+	async function login(e) {
+		const btn = document.getElementById('submitBtn');
+		e.preventDefault();
+		const user = document.getElementById('inputUser').value;
+		if (!user || user.length <= 4) {
+			alert('Preencha o campo usuário!');
+			return false;
+		}
+		btn.disabled = true
+		const resp = await axios.get('/generate-authentication-challenge', { params: { user } });
+		let attResp;
+		try { // Pass the options to the authenticator and wait for a response
+			attResp = await SimpleWebAuthnBrowser.startAuthentication(resp.data);
+		} catch (error) {
+			console.error(error);
+			alert('Error: ' + error.message);
+			btn.disabled = false;
+			return false;
+		}
+
+		const respv = await axios.post('/validate-authentication-challenge', attResp);
+		if (!respv.data.success) {
+			alert(respv.data.error);
+			btn.disabled = false;
+			return false;
+		}
+
+		window.location.href = '/home';
+		return false;
+	}
+</script>
 {% endblock %}

@@ -10,13 +10,17 @@ use Symfony\Component\Serializer\Encoder\JsonEncode;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 use Webauthn\AttestationStatement\AttestationStatementSupportManager;
 use Webauthn\AttestationStatement\NoneAttestationStatementSupport;
+use Webauthn\AuthenticatorAssertionResponse;
+use Webauthn\AuthenticatorAssertionResponseValidator;
 use Webauthn\AuthenticatorAttestationResponse;
 use Webauthn\AuthenticatorAttestationResponseValidator;
 use Webauthn\Denormalizer\WebauthnSerializerFactory;
 use Webauthn\PublicKeyCredential;
 use Webauthn\CeremonyStep\CeremonyStepManagerFactory;
 use Webauthn\PublicKeyCredentialCreationOptions;
+use Webauthn\PublicKeyCredentialDescriptor;
 use Webauthn\PublicKeyCredentialParameters;
+use Webauthn\PublicKeyCredentialRequestOptions;
 use Webauthn\PublicKeyCredentialRpEntity;
 use Webauthn\PublicKeyCredentialSource;
 use Webauthn\PublicKeyCredentialUserEntity;
@@ -35,29 +39,80 @@ class AuthService
         $this->csmFactory = new CeremonyStepManagerFactory();
     }
 
-    public function login(string $user): ?User
+    public function generateAuthenticationChallenge(User $user): string
     {
-        $user = $this->repo->getByUsername($user);
-        if(empty($user)) {
-            return null;
-        }
+        $publicKeyCredentialSources = $this->credRepo->getAllByUserId($user->id);
+        $allowedCredentials = array_map(
+            static function (PublicKeyCredentialSource $credential): PublicKeyCredentialDescriptor {
+                return $credential->getPublicKeyCredentialDescriptor();
+            },
+            $publicKeyCredentialSources
+        );
+
+        $publicKeyCredentialRequestOptions = PublicKeyCredentialRequestOptions::create(
+            random_bytes(32), // Challenge
+            allowCredentials: $allowedCredentials,
+            userVerification: PublicKeyCredentialRequestOptions::USER_VERIFICATION_REQUIREMENT_REQUIRED
+        );
+
+        $json = $this->serializer->serialize(
+            $publicKeyCredentialRequestOptions,
+            'json',
+            [ // Optional
+                AbstractObjectNormalizer::SKIP_NULL_VALUES => true,
+                JsonEncode::OPTIONS => JSON_THROW_ON_ERROR,
+            ]
+        );
 
         session_start();
-        $_SESSION['user_id'] = $user->id;
-        session_commit();
+        $_SESSION = [
+            'auth_try_user_id' => $user->id,
+            'last_request_auth_options' => $json
+        ];
 
-        return $user;
+        return $json;
     }
 
-    public function validateSignupKey(
-        User $user,
-        string $data
-    ): ?PublicKeyCredential {
-        $cred = $this->serializer->deserialize(
-            $data,
-            PublicKeyCredential::class,
+    public function validateAuthenticationChallenge(string $res): bool
+    {
+        $publicKeyCredential = $this->serializer->deserialize($res, PublicKeyCredential::class, 'json');
+
+        if (!($publicKeyCredential->response instanceof AuthenticatorAssertionResponse)) {
+            return false;
+        }
+        $publicKeyCredentialSource = $this->credRepo->getByCredentialId(
+            $publicKeyCredential->publicKeyCredentialId
+        );
+        if(empty($publicKeyCredentialSource)) {
+            return false;
+        }
+
+        $authenticatorAssertionResponseValidator = AuthenticatorAssertionResponseValidator::create();
+        session_start();
+        $json = $_SESSION['last_request_auth_options'];
+        if(empty($json) || empty($_SESSION['auth_try_user_id'])) {
+            return false;
+        }
+        $publicKeyCredentialRequestOptions = $this->serializer->deserialize(
+            $json,
+            PublicKeyCredentialRequestOptions::class,
             'json'
         );
+
+        $publicKeyCredentialSource = $authenticatorAssertionResponseValidator->check(
+            $publicKeyCredentialSource,
+            $publicKeyCredential->response,
+            $publicKeyCredentialRequestOptions,
+            'passkey.matheusalves.com.br',
+            $_SESSION['auth_try_user_id']
+        );
+
+        $this->credRepo->update($publicKeyCredentialSource);
+
+        $_SESSION = ['user_id' => $_SESSION['auth_try_user_id']];
+        session_commit();
+
+        return true;
     }
 
     public function generateRegistrationChallenge(User $user): string

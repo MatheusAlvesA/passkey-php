@@ -28,6 +28,8 @@ function setupApp(App $app): void
     $app->post('/update-color', [MainAppController::class, 'updateColor']);
     $app->get('/generate-registration-challenge', [MainAppController::class, 'generateRegistrationChallenge']);
     $app->post('/validate-registration-challenge', [MainAppController::class, 'validateRegistrationChallenge']);
+    $app->get('/generate-authentication-challenge', [MainAppController::class, 'generateAuthenticationChallenge']);
+    $app->post('/validate-authentication-challenge', [MainAppController::class, 'validateAuthenticationChallenge']);
 }
 
 function setupServices(App $app)

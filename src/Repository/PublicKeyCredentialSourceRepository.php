@@ -27,7 +27,7 @@ class PublicKeyCredentialSourceRepository
                 ->select('*')
                 ->from('credentials')
                 ->where('credential_id = :id')
-                ->setParameter('user', $id)
+                ->setParameter('id', base64_encode($id))
                 ->executeQuery()
                 ->fetchAssociative();
 
@@ -81,6 +81,22 @@ class PublicKeyCredentialSourceRepository
         } catch(UniqueConstraintViolationException $ex) {
             throw new UserActionException('A chave já está cadastrada.');
         }
+
+        return $n > 0;
+    }
+
+    public function update(PublicKeyCredentialSource $data): bool
+    {
+        $json = $this->serializer->serialize(
+            $data,
+            'json',
+        );
+        $n = $this->conn->update('credentials', [
+            'credential_id' => base64_encode($data->publicKeyCredentialId),
+            'credential_data' => $json
+        ], [
+            'credential_id' => base64_encode($data->publicKeyCredentialId)
+        ]);
 
         return $n > 0;
     }
