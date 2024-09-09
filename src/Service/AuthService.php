@@ -75,13 +75,14 @@ class AuthService
 
     public function validateAuthenticationChallenge(string $res): bool
     {
+        /** @var PublicKeyCredential */
         $publicKeyCredential = $this->serializer->deserialize($res, PublicKeyCredential::class, 'json');
 
         if (!($publicKeyCredential->response instanceof AuthenticatorAssertionResponse)) {
             return false;
         }
         $publicKeyCredentialSource = $this->credRepo->getByCredentialId(
-            $publicKeyCredential->publicKeyCredentialId
+            $publicKeyCredential->rawId
         );
         if(empty($publicKeyCredentialSource)) {
             return false;
