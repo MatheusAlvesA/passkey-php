@@ -50,7 +50,7 @@ class PublicKeyCredentialSourceRepository
                 ->select('*')
                 ->from('credentials')
                 ->where('user_id = :id')
-                ->setParameter('user', $userId)
+                ->setParameter('id', $userId)
                 ->executeQuery()
                 ->fetchAllAssociative();
 
